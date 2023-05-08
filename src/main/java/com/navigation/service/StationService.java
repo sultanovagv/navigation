@@ -67,15 +67,24 @@ public class StationService {
                 .x(x)
                 .y(y)
                 .errorCode(200)
-                .errorRadius(calculateDistance(baseStations, x, y))
+                .errorRadius(calculateSmallestDistance(baseStations, x, y))
                 .errorDescription("Calculation is ok!")
                 .build();
     }
 
-    private static float calculateDistance(List<BaseStationEntity> baseStations, float x, float y) {
-        var baseStation = baseStations.get(0);
-        var distance = (float) Math.hypot(baseStation.getX() - x, baseStation.getY() - y);
-        return distance;
+    private static float calculateSmallestDistance(List<BaseStationEntity> baseStations, float x, float y) {
+        float smallestDistance = 0.0f;
+        for (int i = 0; i < baseStations.size(); i++) {
+            for (int j = 0; j < baseStations.size(); j++) {
+                if (i != j) {
+                    var distance = (float) Math.hypot(baseStations.get(i).getX() - x, baseStations.get(j).getY() - y);
+                    if (distance < smallestDistance) {
+                        smallestDistance = distance;
+                    }
+                }
+            }
+        }
+        return smallestDistance;
     }
 
     private double[] getMobileStationCoordinates(List<ReportMobileStationEntity> reports, List<BaseStationEntity> baseStations) {

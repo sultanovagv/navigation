@@ -9,7 +9,10 @@ import com.navigation.repository.BaseStationRepository;
 import com.navigation.repository.MobileStationRepository;
 import com.navigation.repository.ReportMobileStationRepository;
 import com.navigation.service.StationService;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +26,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class StatusServiceTest {
 
     private static final UUID MOBILE_ID = UUID.randomUUID();
@@ -41,6 +45,7 @@ class StatusServiceTest {
 
 
     @Test
+    @Order(1)
     void createBaseStationReport() {
         var baseStation = saveBaseStation(MOBILE_ID, 3, 4);
         stationService.createBaseStationReport(baseStation);
