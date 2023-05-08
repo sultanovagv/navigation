@@ -10,7 +10,6 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -25,8 +24,7 @@ public class ReportMobileStationEntity {
 
     @Id
     @Column(name = "id")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_report_mobile_station")
-    @SequenceGenerator(name = "seq_report_mobile_station", sequenceName = "seq_report_mobile_station", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID reportId;
 
     @Column(name = "base_station_id")

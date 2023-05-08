@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
-public class ReportStationService {
+public class StationService {
 
     private final ReportMobileStationRepository reportMobileStationRepository;
     private final BaseStationRepository baseStationRepository;
@@ -37,7 +37,8 @@ public class ReportStationService {
         var reportMobileStationEntities = new ArrayList<ReportMobileStationEntity>();
         reportDto.getReports().forEach(report ->
                 checkDetectionDistanceOfMobileState(reportDto.getBaseStationId(), reportMobileStationEntities, report));
-        reportMobileStationRepository.saveAll(reportMobileStationEntities);
+        var reportMobileStationEntities1 = reportMobileStationRepository.saveAll(reportMobileStationEntities);
+        System.out.println(reportMobileStationEntities1);
     }
 
     public MobileStationDto getMobileStationLocation(MobileStationRequest request) {
@@ -48,27 +49,25 @@ public class ReportStationService {
         if (reports.size() == 0) {
             throw new MobileStationNotFoundException(request.getMobileStationId());
         }
+        var mobileStationDtoBuilder = MobileStationDto.builder().mobileStationId(request.getMobileStationId());
         var baseStations = getBaseStationEntities(reports);
-
+        if (baseStations.size() == 1) {
+            return mobileStationDtoBuilder
+                    .errorCode(500)
+                    .errorDescription("There is no enough report for calculation." +
+                            " Need at least two report.")
+                    .build();
+        }
         double[] coordinates = getMobileStationCoordinates(reports, baseStations);
         var x = (float) coordinates[0];
         var y = (float) coordinates[1];
 
         mobileStationRepository.save(new MobileStationEntity(request.getMobileStationId(), x, y, LocalDate.now()));
-
-        var mobileStationDtoBuilder = MobileStationDto.builder().mobileStationId(request.getMobileStationId())
-                .x(x)
-                .y(y);
         var baseStation = baseStations.get(0);
         var distance = (float) Math.hypot(baseStation.getX() - x, baseStation.getY() - y);
-        if (baseStations.size() == 1) {
-            return mobileStationDtoBuilder.errorCode(500)
-                    .errorRadius(distance)
-                    .errorDescription("There is no enough report for calculation." +
-                            "so distance is calculated according to a base station")
-                    .build();
-        }
         return mobileStationDtoBuilder
+                .x(x)
+                .y(y)
                 .errorCode(200)
                 .errorRadius(distance)
                 .errorDescription("Calculation is ok!")
@@ -107,6 +106,7 @@ public class ReportStationService {
             reportStations.add(ReportMobileStationEntity.builder()
                     .baseStationId(baseStationId)
                     .distance(reportMobileStation.getDistance())
+                    .mobileStationId(reportMobileStation.getMobileStationId())
                     .timestamp(Timestamp.valueOf(reportMobileStation.getTimestamp().atStartOfDay()))
                     .build());
         }
