@@ -18,4 +18,9 @@ public class ErrorHandler {
         return new ResponseEntity<>(ex.getMessage(), NOT_FOUND);
     }
 
+    @ResponseStatus(NOT_FOUND)
+    @ExceptionHandler(MobileStationNotFoundException.class)
+    public ResponseEntity<Object> handleMobileStationNotFoundException(MobileStationNotFoundException ex) {
+        return new ResponseEntity<>(ex.getMessage(), NOT_FOUND);
+    }
 }

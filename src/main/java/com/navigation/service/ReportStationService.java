@@ -6,7 +6,9 @@ import com.navigation.entity.BaseStationEntity;
 import com.navigation.entity.MobileStationEntity;
 import com.navigation.entity.ReportMobileStationEntity;
 import com.navigation.error.BaseStationNotFoundException;
+import com.navigation.error.MobileStationNotFoundException;
 import com.navigation.model.MobileStationDto;
+import com.navigation.model.MobileStationRequest;
 import com.navigation.model.ReportDto;
 import com.navigation.model.ReportMobileStationRecordDto;
 import com.navigation.repository.BaseStationRepository;
@@ -17,6 +19,7 @@ import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,25 +40,32 @@ public class ReportStationService {
         reportMobileStationRepository.saveAll(reportMobileStationEntities);
     }
 
-    public MobileStationDto getMobileStationLocation(UUID mobileStationId) {
-        var reports = reportMobileStationRepository.findByMobileStationIdOrderByTimestamp(mobileStationId);
+    public MobileStationDto getMobileStationLocation(MobileStationRequest request) {
+        var reports = reportMobileStationRepository
+                .findByMobileStationIdAndTimestamp(request.getMobileStationId(),
+                        Timestamp.valueOf(request.getReportDate().atStartOfDay()));
+
+        if (reports.size() == 0) {
+            throw new MobileStationNotFoundException(request.getMobileStationId());
+        }
         var baseStations = getBaseStationEntities(reports);
 
-        double[] coordinates = getCoordinates(reports, baseStations);
+        double[] coordinates = getMobileStationCoordinates(reports, baseStations);
         var x = (float) coordinates[0];
         var y = (float) coordinates[1];
 
-        mobileStationRepository.save(new MobileStationEntity(mobileStationId, x, y));
+        mobileStationRepository.save(new MobileStationEntity(request.getMobileStationId(), x, y, LocalDate.now()));
 
-        var mobileStationDtoBuilder = MobileStationDto.builder().mobileStationId(mobileStationId)
+        var mobileStationDtoBuilder = MobileStationDto.builder().mobileStationId(request.getMobileStationId())
                 .x(x)
                 .y(y);
-        var baseStationEntity = baseStations.get(0);
-        var distance = (float) Math.hypot(baseStationEntity.getX() - x, baseStationEntity.getY() - y);
-        if (distance > baseStationEntity.getDetectionRadiusInMeters()) {
+        var baseStation = baseStations.get(0);
+        var distance = (float) Math.hypot(baseStation.getX() - x, baseStation.getY() - y);
+        if (baseStations.size() == 1) {
             return mobileStationDtoBuilder.errorCode(500)
                     .errorRadius(distance)
-                    .errorDescription("distance is not in interval")
+                    .errorDescription("There is no enough report for calculation." +
+                            "so distance is calculated according to a base station")
                     .build();
         }
         return mobileStationDtoBuilder
@@ -65,7 +75,7 @@ public class ReportStationService {
                 .build();
     }
 
-    private double[] getCoordinates(List<ReportMobileStationEntity> reports, List<BaseStationEntity> baseStations) {
+    private double[] getMobileStationCoordinates(List<ReportMobileStationEntity> reports, List<BaseStationEntity> baseStations) {
         double[][] coordinates = baseStations
                 .stream()
                 .map(key -> new double[]{key.getX(), key.getY()})
@@ -97,7 +107,7 @@ public class ReportStationService {
             reportStations.add(ReportMobileStationEntity.builder()
                     .baseStationId(baseStationId)
                     .distance(reportMobileStation.getDistance())
-                    .timestamp(Timestamp.valueOf(reportMobileStation.getTimestamp()))
+                    .timestamp(Timestamp.valueOf(reportMobileStation.getTimestamp().atStartOfDay()))
                     .build());
         }
     }
