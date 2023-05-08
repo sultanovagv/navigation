@@ -63,15 +63,19 @@ public class StationService {
         var y = (float) coordinates[1];
 
         mobileStationRepository.save(new MobileStationEntity(request.getMobileStationId(), x, y, LocalDate.now()));
-        var baseStation = baseStations.get(0);
-        var distance = (float) Math.hypot(baseStation.getX() - x, baseStation.getY() - y);
         return mobileStationDtoBuilder
                 .x(x)
                 .y(y)
                 .errorCode(200)
-                .errorRadius(distance)
+                .errorRadius(calculateDistance(baseStations, x, y))
                 .errorDescription("Calculation is ok!")
                 .build();
+    }
+
+    private static float calculateDistance(List<BaseStationEntity> baseStations, float x, float y) {
+        var baseStation = baseStations.get(0);
+        var distance = (float) Math.hypot(baseStation.getX() - x, baseStation.getY() - y);
+        return distance;
     }
 
     private double[] getMobileStationCoordinates(List<ReportMobileStationEntity> reports, List<BaseStationEntity> baseStations) {
